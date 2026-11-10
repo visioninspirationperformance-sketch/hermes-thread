@@ -40,3 +40,23 @@ LOG_SCHEMA = {
         "required": ["text"],
     },
 }
+
+DASHBOARD_SCHEMA = {
+    "name": "thread_dashboard",
+    "description": (
+        "Get the full thread dashboard data: all session closures and open owed items. "
+        "Returns structured data for the Desktop pane. The agent can call this to "
+        "show the user a live view of their thread history."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "limit": {
+                "type": "integer",
+                "description": "Maximum number of closure records to return (default 50).",
+                "default": 50
+            }
+        },
+        "required": [],
+    },
+}

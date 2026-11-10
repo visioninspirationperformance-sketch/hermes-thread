@@ -50,8 +50,20 @@ def handle_log(params: dict, session_id: str = "", **_: Any) -> str:
     return json.dumps({"success": True, "logged": text, "kind": kind})
 
 
+def handle_dashboard(params: dict, **_: Any) -> str:
+    limit = params.get("limit") or 50
+    closures = []
+    owed = []
+    for r in ledger.read_ledger(limit=limit):
+        if r.get("type") == "closure":
+            closures.append(r)
+        elif r.get("type") == "owed" and r.get("status") == "open":
+            owed.append(r)
+    return json.dumps({"closures": closures, "owed": owed}, default=str)
+
+
 def handle_resume_command(raw_args: str) -> Optional[str]:
-    """`/resume` — print the current thread state."""
+    """/resume — print the current thread state."""
     lines = ["Thread — session continuity"]
 
     closure = ledger.latest_closure()
@@ -79,3 +91,13 @@ def handle_resume_command(raw_args: str) -> Optional[str]:
         lines.append("Open items: none.")
 
     return "\n".join(lines)
+
+
+def handle_dashboard_command(raw_args: str) -> Optional[str]:
+    """/thread-dashboard — show dashboard URL or print summary."""
+    from . import _get_dashboard_port
+    port = _get_dashboard_port()
+    if port:
+        url = f"http://127.0.0.1:{port}/thread/dashboard"
+        return f"Thread Dashboard: {url}\nOpen in Desktop pane or browser."
+    return "Thread Dashboard not running (Starlette/uvicorn not available or failed to start)"

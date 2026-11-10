@@ -1,14 +1,21 @@
 name: thread
-version: 1.0.0
-description: "Operational session continuity for Hermes. Auto-captures what you were working on and what you owe at session end, then re-orients the next session so it never starts cold. Hermes never forgets the thread."
+version: 2.0.0
+description: "Operational session continuity for Hermes. Auto-captures what you were working on and what you owe at session end, then re-orients the next session so it never starts cold. Includes Desktop dashboard pane for live thread visualization."
 author: "Danny Purdy"
 license: MIT
 requires_hermes: ">=0.21"
 provides_tools:
   - thread_whats_owed
   - thread_log
+  - thread_dashboard
 provides_hooks:
   - pre_llm_call
   - post_tool_call
   - post_llm_call
   - on_session_end
+provides_commands:
+  - resume
+  - thread-dashboard
+python_dependencies:
+  - starlette
+  - uvicorn
