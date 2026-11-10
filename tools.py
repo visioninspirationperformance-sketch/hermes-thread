@@ -50,8 +50,16 @@ def handle_log(params: dict, session_id: str = "", **_: Any) -> str:
     return json.dumps({"success": True, "logged": text, "kind": kind})
 
 
-def handle_resume_command(raw_args: str) -> Optional[str]:
-    """`/resume` — print the current thread state."""
+def handle_resolve(params: dict, session_id: str = "", **_: Any) -> str:
+    text = (params.get("text") or "").strip()
+    if not text:
+        return json.dumps({"success": False, "error": "text is required"})
+    count = ledger.resolve_owed(text)
+    return json.dumps({"success": True, "resolved": count, "text": text})
+
+
+def handle_thread_command(raw_args: str) -> Optional[str]:
+    """`/thread` — print the current thread state."""
     lines = ["Thread — session continuity"]
 
     closure = ledger.latest_closure()

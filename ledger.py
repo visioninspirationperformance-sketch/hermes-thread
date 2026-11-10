@@ -19,9 +19,19 @@ import time
 from pathlib import Path
 from typing import Any, List, Optional
 
+try:
+    from hermes_constants import get_hermes_home
+except Exception:  # pragma: no cover - fallback when running outside Hermes
+    get_hermes_home = None
+
 
 def home() -> Path:
     """Resolve the real Hermes home (per profile) — never hardcode ~/.hermes."""
+    if get_hermes_home is not None:
+        try:
+            return Path(get_hermes_home())
+        except Exception:
+            pass
     env = os.environ.get("HERMES_HOME")
     if env:
         return Path(env)
@@ -41,7 +51,8 @@ def ledger_path() -> Path:
 def _append(record: dict) -> None:
     record.setdefault("ts", time.time())
     line = json.dumps(record, ensure_ascii=False) + "\n"
-    fd = os.open(ledger_path(), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    # 0o600 — only the owner can read/write; no world-readable ledger with tokens
+    fd = os.open(ledger_path(), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
     try:
         os.write(fd, line.encode("utf-8"))
     finally:
@@ -73,6 +84,41 @@ def append_owed(session_id: str, text: str, kind: str = "todo") -> None:
     })
 
 
+def resolve_owed(text_substring: str) -> int:
+    """Mark owed items matching the substring as resolved (status=done).
+
+    Returns the count of items updated. Rewrites the ledger file atomically.
+    """
+    path = ledger_path()
+    if not path.exists():
+        return 0
+    lines = path.read_text(encoding="utf-8").splitlines()
+    updated = 0
+    new_lines: List[str] = []
+    for ln in lines:
+        ln_stripped = ln.strip()
+        if not ln_stripped:
+            new_lines.append(ln)
+            continue
+        try:
+            rec = json.loads(ln_stripped)
+        except json.JSONDecodeError:
+            new_lines.append(ln)
+            continue
+        if (rec.get("type") == "owed"
+                and rec.get("status") == "open"
+                and text_substring in rec.get("text", "")):
+            rec["status"] = "done"
+            updated += 1
+        new_lines.append(json.dumps(rec, ensure_ascii=False))
+    if updated:
+        # Atomic replace
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+        tmp.replace(path)
+    return updated
+
+
 def read_ledger(limit: int = 200) -> List[dict]:
     """Return the tail of the ledger as parsed records (corrupt lines skipped)."""
     path = ledger_path()
@@ -92,8 +138,8 @@ def read_ledger(limit: int = 200) -> List[dict]:
 
 
 def open_owed() -> List[dict]:
-    """Outstanding items (``type == owed`` and ``status == open``), oldest first."""
-    return [r for r in read_ledger() if r.get("type") == "owed" and r.get("status") == "open"]
+    """Outstanding items (``type == owed`` and ``status == open``), NEWEST first."""
+    return [r for r in reversed(read_ledger()) if r.get("type") == "owed" and r.get("status") == "open"]
 
 
 def latest_closure() -> Optional[dict]:
@@ -146,7 +192,7 @@ def resume_block(max_chars: int = 1600) -> Optional[str]:
         for o in owed[:10]:
             lines.append(f"    - {o.get('text', '')[:300]}")
 
-    lines.append("- Use /resume for the full thread; whats_owed lists open items.")
+    lines.append("- Use /thread for the full thread; thread_whats_owed lists open items.")
 
     block = "\n".join(lines)
     return block[:max_chars]

@@ -18,9 +18,9 @@ it hooks the Hermes runtime:
   what the agent concluded, and whether the session finished or was interrupted).
 - **`pre_llm_call`** (first turn) → injects a one-shot resume block so the next
   session opens *already oriented* — "you were working on X, here's what's owed."
-- **`thread_whats_owed`** / **`thread_log`** tools → query and record outstanding
-  items that survive across sessions.
-- **`/resume`** → see your thread at any time.
+- **`thread_whats_owed`** / **`thread_log`** / **`thread_resolve`** tools → query,
+  record, and resolve outstanding items that survive across sessions.
+- **`/thread`** → see your thread at any time.
 
 No cloud, no API key, no database, no daemon. A single append-only file under
 `~/.hermes/thread/`. Works offline, on any platform, with any provider.

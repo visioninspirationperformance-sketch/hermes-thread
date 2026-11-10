@@ -40,3 +40,21 @@ LOG_SCHEMA = {
         "required": ["text"],
     },
 }
+
+RESOLVE_SCHEMA = {
+    "name": "thread_resolve",
+    "description": (
+        "Mark an owed item as resolved (done). Matches by substring against the "
+        "item text. Use this when an outstanding item has been completed."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "text": {
+                "type": "string",
+                "description": "Substring to match against owed item text for resolution. E.g. 'validation gate' resolves items containing that text.",
+            },
+        },
+        "required": ["text"],
+    },
+}
